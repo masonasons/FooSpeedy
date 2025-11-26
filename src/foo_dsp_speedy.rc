@@ -1,0 +1,90 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+#include <winresrc.h>
+#undef APSTUDIO_READONLY_SYMBOLS
+
+#ifndef IDC_STATIC
+#define IDC_STATIC (-1)
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DSP_SPEEDY DIALOGEX 0, 0, 280, 140
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Speedy DSP Settings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Speed Control",IDC_STATIC,7,7,266,50
+    LTEXT           "Playback Speed:",IDC_STATIC_SPEED,14,22,60,8
+    CONTROL         "",IDC_SLIDER_SPEED,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,75,20,150,15
+    RTEXT           "1.00x",IDC_SPEED_VALUE,230,22,35,8
+
+    LTEXT           "Pitch:",IDC_STATIC_PITCH,14,40,60,8
+    CONTROL         "",IDC_SLIDER_PITCH,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,75,38,150,15
+    RTEXT           "1.00x",IDC_PITCH_VALUE,230,40,35,8
+
+    GROUPBOX        "Speedy Options",IDC_STATIC,7,62,266,35
+    CONTROL         "Enable nonlinear speedup (speech-optimized)",IDC_NONLINEAR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,77,200,10
+
+    PUSHBUTTON      "Reset",IDC_RESET,7,103,50,14
+    DEFPUSHBUTTON   "OK",IDOK,169,103,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,223,103,50,14
+
+    LTEXT           "Speedy uses Google's nonlinear speech speedup algorithm for natural-sounding speed changes.",
+                    IDC_STATIC,7,123,266,16
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "FooSpeedy Project"
+            VALUE "FileDescription", "Speedy DSP for foobar2000"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "foo_dsp_speedy"
+            VALUE "LegalCopyright", "Apache 2.0 License"
+            VALUE "OriginalFilename", "foo_dsp_speedy.dll"
+            VALUE "ProductName", "Speedy DSP"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+#endif    // English (United States) resources

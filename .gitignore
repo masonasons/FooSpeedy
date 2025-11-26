@@ -1,0 +1,40 @@
+# Build outputs
+bin/
+obj/
+Release/
+Debug/
+x64/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+ipch/
+
+# Precompiled headers
+*.pch
+
+# Libraries and object files
+*.lib
+*.obj
+*.dll
+*.exp
+*.ilk
+*.pdb
+
+# Build logs
+*.log
+*.tlog/
+
+# Dependencies (cloned repos)
+lib/foobar2000_SDK/
+lib/sonic_repo/
+lib/speedy_repo/
+lib/kissfft/
+
+# Claude Code local settings
+.claude/
