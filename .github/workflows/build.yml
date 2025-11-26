@@ -1,0 +1,102 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Clone dependencies
+      shell: cmd
+      run: |
+        mkdir lib
+        cd lib
+        git clone --depth 1 https://github.com/foobar2000/SDK.git foobar2000_SDK
+        git clone --depth 1 https://github.com/waywardgeek/sonic.git sonic_repo
+        git clone --depth 1 https://github.com/google/speedy.git speedy_repo
+        git clone --depth 1 https://github.com/mborgerding/kissfft.git kissfft
+
+    - name: Build Win32 Release
+      shell: cmd
+      run: |
+        msbuild foo_dsp_speedy.sln -p:Configuration=Release -p:Platform=Win32 -p:PlatformToolset=v143 -verbosity:minimal
+
+    - name: Build x64 Release
+      shell: cmd
+      run: |
+        msbuild foo_dsp_speedy.sln -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -verbosity:minimal
+
+    - name: Create fb2k-component package
+      shell: pwsh
+      run: |
+        # Get short commit hash for versioning
+        $commitHash = git rev-parse --short HEAD
+        $version = "latest-$commitHash"
+
+        # Create staging directory
+        $stageDir = "staging"
+        New-Item -ItemType Directory -Force -Path $stageDir
+        New-Item -ItemType Directory -Force -Path "$stageDir/x64"
+
+        # Copy DLLs
+        Copy-Item "bin/Release/Win32/foo_dsp_speedy.dll" "$stageDir/foo_dsp_speedy.dll"
+        Copy-Item "bin/Release/x64/foo_dsp_speedy.dll" "$stageDir/x64/foo_dsp_speedy.dll"
+
+        # Create release directory
+        New-Item -ItemType Directory -Force -Path "release"
+
+        # Create zip then rename to fb2k-component
+        $zipPath = "release/foo_dsp_speedy-$version.zip"
+        $componentPath = "release/foo_dsp_speedy-$version.fb2k-component"
+        Compress-Archive -Path "$stageDir/*" -DestinationPath $zipPath -Force
+        Move-Item $zipPath $componentPath -Force
+
+        # Also create a "latest" version
+        $latestZip = "release/foo_dsp_speedy-latest.zip"
+        $latestComponent = "release/foo_dsp_speedy-latest.fb2k-component"
+        Compress-Archive -Path "$stageDir/*" -DestinationPath $latestZip -Force
+        Move-Item $latestZip $latestComponent -Force
+
+        Write-Host "Created packages:"
+        Get-ChildItem release/*.fb2k-component
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: foo_dsp_speedy
+        path: release/*.fb2k-component
+        retention-days: 90
+
+    - name: Update latest release
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: Latest Build
+        body: |
+          Automatic build from commit ${{ github.sha }}
+
+          ## Installation
+          1. Download `foo_dsp_speedy-latest.fb2k-component`
+          2. Double-click to install, or drag onto foobar2000
+
+          ## Features
+          - Speed control (0.25x - 4.0x)
+          - Pitch control (0.5x - 2.0x)
+          - Nonlinear speedup mode for speech (Google Speedy/Mach1 algorithm)
+          - Supports both 32-bit and 64-bit foobar2000
+        files: release/*.fb2k-component
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -38,3 +38,6 @@ lib/kissfft/
 
 # Claude Code local settings
 .claude/
+
+# Release packages (local builds)
+release/
