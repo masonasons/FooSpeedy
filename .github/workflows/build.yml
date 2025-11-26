@@ -22,7 +22,7 @@ jobs:
       run: |
         mkdir lib
         cd lib
-        git clone --depth 1 https://github.com/foobar2000/SDK.git foobar2000_SDK
+        git clone --depth 1 https://github.com/reupen/foobar2000-sdk-unmodified.git foobar2000_SDK
         git clone --depth 1 https://github.com/waywardgeek/sonic.git sonic_repo
         git clone --depth 1 https://github.com/google/speedy.git speedy_repo
         git clone --depth 1 https://github.com/mborgerding/kissfft.git kissfft

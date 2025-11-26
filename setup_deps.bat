@@ -14,7 +14,7 @@ cd lib
 :: Clone foobar2000 SDK
 if not exist "foobar2000_SDK" (
     echo Cloning foobar2000 SDK...
-    git clone https://github.com/foobar2000/SDK.git foobar2000_SDK
+    git clone https://github.com/reupen/foobar2000-sdk-unmodified.git foobar2000_SDK
     if !errorlevel! neq 0 (
         echo ERROR: Failed to clone foobar2000 SDK
         exit /b 1
