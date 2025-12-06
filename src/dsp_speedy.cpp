@@ -37,15 +37,29 @@ static const float kDefaultRate = 1.0f;
 static const float kDefaultVolume = 1.0f;
 static const bool kDefaultNonlinear = false;
 static const float kDefaultNonlinearFactor = 1.0f;
+static const bool kDefaultPitchInSemitones = false;
+
+// Semitone conversion utilities
+// Semitones to pitch ratio: ratio = 2^(semitones/12)
+// Pitch ratio to semitones: semitones = 12 * log2(ratio)
+static float semitones_to_ratio(float semitones) {
+    return std::pow(2.0f, semitones / 12.0f);
+}
+
+static float ratio_to_semitones(float ratio) {
+    if (ratio <= 0.0f) return 0.0f;
+    return 12.0f * std::log2(ratio);
+}
 
 // Configuration structure
 struct dsp_speedy_config {
     float speed;
-    float pitch;
+    float pitch;  // Always stored as ratio internally
     float rate;
     float volume;
     bool nonlinear_enabled;
     float nonlinear_factor;
+    bool pitch_in_semitones;  // UI display mode
 
     dsp_speedy_config() :
         speed(kDefaultSpeed),
@@ -53,7 +67,8 @@ struct dsp_speedy_config {
         rate(kDefaultRate),
         volume(kDefaultVolume),
         nonlinear_enabled(kDefaultNonlinear),
-        nonlinear_factor(kDefaultNonlinearFactor)
+        nonlinear_factor(kDefaultNonlinearFactor),
+        pitch_in_semitones(kDefaultPitchInSemitones)
     {}
 
     bool is_default() const {
@@ -279,6 +294,8 @@ static void parse_preset(const dsp_preset& preset, dsp_speedy_config& config) {
         const t_uint8* data = static_cast<const t_uint8*>(preset.get_data());
         t_size size = preset.get_data_size();
 
+        // Version 1: 5 floats + 1 bool (nonlinear_enabled)
+        // Version 2: 5 floats + 2 bools (nonlinear_enabled, pitch_in_semitones)
         if (size >= sizeof(float) * 5 + sizeof(bool)) {
             const float* floats = reinterpret_cast<const float*>(data);
             config.speed = floats[0];
@@ -287,6 +304,13 @@ static void parse_preset(const dsp_preset& preset, dsp_speedy_config& config) {
             config.volume = floats[3];
             config.nonlinear_factor = floats[4];
             config.nonlinear_enabled = *reinterpret_cast<const bool*>(data + sizeof(float) * 5);
+
+            // Check for version 2 format with pitch_in_semitones
+            if (size >= sizeof(float) * 5 + sizeof(bool) * 2) {
+                config.pitch_in_semitones = *reinterpret_cast<const bool*>(data + sizeof(float) * 5 + sizeof(bool));
+            } else {
+                config.pitch_in_semitones = false;
+            }
         } else {
             config.reset();
         }
@@ -298,8 +322,8 @@ static void parse_preset(const dsp_preset& preset, dsp_speedy_config& config) {
 static void make_preset(const dsp_speedy_config& config, dsp_preset& out) {
     out.set_owner(g_dsp_speedy_guid);
 
-    // Simple binary format: 5 floats + 1 bool
-    std::vector<char> data(sizeof(float) * 5 + sizeof(bool));
+    // Binary format: 5 floats + 2 bools
+    std::vector<char> data(sizeof(float) * 5 + sizeof(bool) * 2);
     float* floats = reinterpret_cast<float*>(data.data());
     floats[0] = config.speed;
     floats[1] = config.pitch;
@@ -307,6 +331,7 @@ static void make_preset(const dsp_speedy_config& config, dsp_preset& out) {
     floats[3] = config.volume;
     floats[4] = config.nonlinear_factor;
     *reinterpret_cast<bool*>(data.data() + sizeof(float) * 5) = config.nonlinear_enabled;
+    *reinterpret_cast<bool*>(data.data() + sizeof(float) * 5 + sizeof(bool)) = config.pitch_in_semitones;
 
     out.set_data(data.data(), data.size());
 }
@@ -322,8 +347,38 @@ static void UpdateDialogLabels(HWND hDlg, const dsp_speedy_config& config) {
     snprintf(buf, sizeof(buf), "%.2fx", config.speed);
     SetDlgItemTextA(hDlg, IDC_SPEED_VALUE, buf);
 
-    snprintf(buf, sizeof(buf), "%.2fx", config.pitch);
+    if (config.pitch_in_semitones) {
+        float semitones = ratio_to_semitones(config.pitch);
+        if (semitones >= 0) {
+            snprintf(buf, sizeof(buf), "+%.2f st", semitones);
+        } else {
+            snprintf(buf, sizeof(buf), "%.2f st", semitones);
+        }
+    } else {
+        snprintf(buf, sizeof(buf), "%.2fx", config.pitch);
+    }
     SetDlgItemTextA(hDlg, IDC_PITCH_VALUE, buf);
+}
+
+// Update pitch slider range and position based on mode
+// Ratio mode: 50-200 (0.5x to 2.0x)
+// Semitone mode: -12 to +12 semitones (mapped to 0-240 for slider, 120 = 0 semitones)
+static void UpdatePitchSliderForMode(HWND hDlg, DialogData* data) {
+    HWND hPitchSlider = GetDlgItem(hDlg, IDC_SLIDER_PITCH);
+
+    if (data->config.pitch_in_semitones) {
+        // Semitone mode: -12 to +12 (slider range 0-240, center at 120)
+        SendMessage(hPitchSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, 240));
+        float semitones = ratio_to_semitones(data->config.pitch);
+        int sliderPos = static_cast<int>((semitones + 12.0f) * 10.0f);  // -12 to +12 -> 0 to 240
+        if (sliderPos < 0) sliderPos = 0;
+        if (sliderPos > 240) sliderPos = 240;
+        SendMessage(hPitchSlider, TBM_SETPOS, TRUE, sliderPos);
+    } else {
+        // Ratio mode: 50% to 200%
+        SendMessage(hPitchSlider, TBM_SETRANGE, TRUE, MAKELPARAM(50, 200));
+        SendMessage(hPitchSlider, TBM_SETPOS, TRUE, static_cast<int>(data->config.pitch * 100));
+    }
 }
 
 static void UpdatePresetFromDialog(HWND hDlg, DialogData* data) {
@@ -346,10 +401,12 @@ static INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
             SendMessage(hSpeedSlider, TBM_SETRANGE, TRUE, MAKELPARAM(25, 400));
             SendMessage(hSpeedSlider, TBM_SETPOS, TRUE, static_cast<int>(data->config.speed * 100));
 
-            // Initialize pitch slider (50% to 200%)
-            HWND hPitchSlider = GetDlgItem(hDlg, IDC_SLIDER_PITCH);
-            SendMessage(hPitchSlider, TBM_SETRANGE, TRUE, MAKELPARAM(50, 200));
-            SendMessage(hPitchSlider, TBM_SETPOS, TRUE, static_cast<int>(data->config.pitch * 100));
+            // Initialize pitch mode radio buttons
+            CheckRadioButton(hDlg, IDC_PITCH_MODE_RATIO, IDC_PITCH_MODE_SEMITONES,
+                data->config.pitch_in_semitones ? IDC_PITCH_MODE_SEMITONES : IDC_PITCH_MODE_RATIO);
+
+            // Initialize pitch slider based on mode
+            UpdatePitchSliderForMode(hDlg, data);
 
             // Initialize nonlinear checkbox
             CheckDlgButton(hDlg, IDC_NONLINEAR, data->config.nonlinear_enabled ? BST_CHECKED : BST_UNCHECKED);
@@ -365,7 +422,17 @@ static INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
                 HWND hPitchSlider = GetDlgItem(hDlg, IDC_SLIDER_PITCH);
 
                 data->config.speed = SendMessage(hSpeedSlider, TBM_GETPOS, 0, 0) / 100.0f;
-                data->config.pitch = SendMessage(hPitchSlider, TBM_GETPOS, 0, 0) / 100.0f;
+
+                // Convert pitch slider value based on mode
+                int pitchSliderPos = static_cast<int>(SendMessage(hPitchSlider, TBM_GETPOS, 0, 0));
+                if (data->config.pitch_in_semitones) {
+                    // Convert slider position (0-240) to semitones (-12 to +12) to ratio
+                    float semitones = (pitchSliderPos / 10.0f) - 12.0f;
+                    data->config.pitch = semitones_to_ratio(semitones);
+                } else {
+                    // Direct ratio from slider (50-200 -> 0.5-2.0)
+                    data->config.pitch = pitchSliderPos / 100.0f;
+                }
 
                 UpdateDialogLabels(hDlg, data->config);
                 UpdatePresetFromDialog(hDlg, data);
@@ -375,6 +442,16 @@ static INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case IDC_PITCH_MODE_RATIO:
+        case IDC_PITCH_MODE_SEMITONES:
+            if (data && HIWORD(wParam) == BN_CLICKED) {
+                data->config.pitch_in_semitones = (IsDlgButtonChecked(hDlg, IDC_PITCH_MODE_SEMITONES) == BST_CHECKED);
+                UpdatePitchSliderForMode(hDlg, data);
+                UpdateDialogLabels(hDlg, data->config);
+                UpdatePresetFromDialog(hDlg, data);
+            }
+            return TRUE;
+
         case IDC_NONLINEAR:
             if (data && HIWORD(wParam) == BN_CLICKED) {
                 data->config.nonlinear_enabled = (IsDlgButtonChecked(hDlg, IDC_NONLINEAR) == BST_CHECKED);
@@ -387,10 +464,12 @@ static INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
                 data->config.reset();
 
                 HWND hSpeedSlider = GetDlgItem(hDlg, IDC_SLIDER_SPEED);
-                HWND hPitchSlider = GetDlgItem(hDlg, IDC_SLIDER_PITCH);
-
                 SendMessage(hSpeedSlider, TBM_SETPOS, TRUE, 100);
-                SendMessage(hPitchSlider, TBM_SETPOS, TRUE, 100);
+
+                // Reset radio to ratio mode
+                CheckRadioButton(hDlg, IDC_PITCH_MODE_RATIO, IDC_PITCH_MODE_SEMITONES, IDC_PITCH_MODE_RATIO);
+                UpdatePitchSliderForMode(hDlg, data);
+
                 CheckDlgButton(hDlg, IDC_NONLINEAR, BST_UNCHECKED);
 
                 UpdateDialogLabels(hDlg, data->config);

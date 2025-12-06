@@ -22,30 +22,33 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_DSP_SPEEDY DIALOGEX 0, 0, 280, 140
+IDD_DSP_SPEEDY DIALOGEX 0, 0, 280, 160
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Speedy DSP Settings"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Speed Control",IDC_STATIC,7,7,266,50
-    LTEXT           "Playback Speed:",IDC_STATIC_SPEED,14,22,60,8
-    CONTROL         "",IDC_SLIDER_SPEED,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,75,20,150,15
-    RTEXT           "1.00x",IDC_SPEED_VALUE,230,22,35,8
+    GROUPBOX        "Speed Control",IDC_STATIC,7,7,266,30
+    LTEXT           "Playback Speed:",IDC_STATIC_SPEED,14,20,60,8
+    CONTROL         "",IDC_SLIDER_SPEED,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,75,18,150,15
+    RTEXT           "1.00x",IDC_SPEED_VALUE,230,20,35,8
 
-    LTEXT           "Pitch:",IDC_STATIC_PITCH,14,40,60,8
-    CONTROL         "",IDC_SLIDER_PITCH,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,75,38,150,15
-    RTEXT           "1.00x",IDC_PITCH_VALUE,230,40,35,8
+    GROUPBOX        "Pitch Control",IDC_STATIC,7,40,266,45
+    CONTROL         "Ratio",IDC_PITCH_MODE_RATIO,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,52,35,10
+    CONTROL         "Semitones",IDC_PITCH_MODE_SEMITONES,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,55,52,50,10
+    LTEXT           "Pitch:",IDC_STATIC_PITCH,14,68,25,8
+    CONTROL         "",IDC_SLIDER_PITCH,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,40,66,180,15
+    RTEXT           "1.00x",IDC_PITCH_VALUE,225,68,40,8
 
-    GROUPBOX        "Speedy Options",IDC_STATIC,7,62,266,35
+    GROUPBOX        "Speedy Options",IDC_STATIC,7,88,266,30
     CONTROL         "Enable nonlinear speedup (speech-optimized)",IDC_NONLINEAR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,77,200,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,101,200,10
 
-    PUSHBUTTON      "Reset",IDC_RESET,7,103,50,14
-    DEFPUSHBUTTON   "OK",IDOK,169,103,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,223,103,50,14
+    PUSHBUTTON      "Reset",IDC_RESET,7,123,50,14
+    DEFPUSHBUTTON   "OK",IDOK,169,123,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,223,123,50,14
 
     LTEXT           "Speedy uses Google's nonlinear speech speedup algorithm for natural-sounding speed changes.",
-                    IDC_STATIC,7,123,266,16
+                    IDC_STATIC,7,142,266,16
 END
 
 
